@@ -37,17 +37,17 @@
 
   function eyeIcon() {
     var svg = document.createElementNS(NS, 'svg');
-    svg.setAttribute('viewBox', '0 0 16 16');
-    svg.setAttribute('class', 'dot');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('class', 'eye');
     svg.setAttribute('aria-hidden', 'true');
-    var ring = document.createElementNS(NS, 'circle');
-    ring.setAttribute('cx', '8'); ring.setAttribute('cy', '8'); ring.setAttribute('r', '6.5');
-    ring.setAttribute('class', 'ring');
-    var core = document.createElementNS(NS, 'circle');
-    core.setAttribute('cx', '8'); core.setAttribute('cy', '8'); core.setAttribute('r', '3');
-    core.setAttribute('class', 'core');
-    svg.appendChild(ring);
-    svg.appendChild(core);
+    var lid = document.createElementNS(NS, 'path');
+    lid.setAttribute('d', 'M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z');
+    lid.setAttribute('class', 'lid');
+    var pupil = document.createElementNS(NS, 'circle');
+    pupil.setAttribute('cx', '12'); pupil.setAttribute('cy', '12'); pupil.setAttribute('r', '3.2');
+    pupil.setAttribute('class', 'pupil');
+    svg.appendChild(lid);
+    svg.appendChild(pupil);
     return svg;
   }
 
@@ -83,9 +83,10 @@
     var count = el('span', 'count');
     count.appendChild(eyeIcon());
     count.appendChild(el('span', 'num', fmtNum(w.open_count)));
+    count.appendChild(el('span', 'lbl', 'opened'));
     row.appendChild(count);
 
-    var arrow = el('button', 'arrow', '↗');
+    var arrow = el('button', 'arrow', '↗ SHARE');
     arrow.type = 'button';
     arrow.setAttribute('aria-label', 'Share ' + w.title);
     row.appendChild(arrow);
@@ -97,7 +98,7 @@
     });
     arrow.addEventListener('click', function (e) {
       e.stopPropagation();
-      shareWhisper(w.slug, w.title, arrow, '↗');
+      shareWhisper(w.slug, w.title, arrow, '↗ SHARE');
     });
 
     return post;
@@ -204,26 +205,18 @@
 
   /* ---------- share ---------- */
 
+  // Copies the link and nothing else. No native share sheet, no extra text.
   function shareWhisper(slug, title, button, restLabel) {
     var url = location.origin + '/w/' + slug;
-    var done = function (label) {
-      if (!label) return;
+    copyLink(url, function (label) {
       button.textContent = label;
       setTimeout(function () { button.textContent = restLabel; }, 1600);
-    };
-    if (navigator.share) {
-      navigator.share({ title: title, url: url }).catch(function (err) {
-        if (err && err.name === 'AbortError') return;
-        copyLink(url, done);
-      });
-    } else {
-      copyLink(url, done);
-    }
+    });
   }
 
   function copyLink(url, done) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url).then(function () { done('COPIED'); }, function () { window.prompt('Copy this link', url); });
+      navigator.clipboard.writeText(url).then(function () { done('LINK COPIED'); }, function () { window.prompt('Copy this link', url); });
     } else {
       window.prompt('Copy this link', url);
     }
