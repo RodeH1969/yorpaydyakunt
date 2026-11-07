@@ -1,0 +1,247 @@
+(function () {
+  'use strict';
+
+  var feed = document.getElementById('feed');
+  var overlay = document.getElementById('overlay');
+  var closeBtn = document.getElementById('close');
+  var popupTitle = document.getElementById('popup-title');
+  var popupPlace = document.getElementById('popup-place');
+  var popupDate = document.getElementById('popup-date');
+  var popupBody = document.getElementById('popup-body');
+  var popupCount = document.getElementById('popup-count');
+  var popupShare = document.getElementById('popup-share');
+
+  var NS = 'http://www.w3.org/2000/svg';
+  var whispers = {};
+  var current = null;
+  var lastFocus = null;
+
+  /* ---------- helpers ---------- */
+
+  function fmtDate(iso) {
+    var p = iso.split('-');
+    var d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]));
+    return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  }
+
+  function fmtNum(n) {
+    return Number(n).toLocaleString('en-AU');
+  }
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function eyeIcon() {
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 16 16');
+    svg.setAttribute('class', 'dot');
+    svg.setAttribute('aria-hidden', 'true');
+    var ring = document.createElementNS(NS, 'circle');
+    ring.setAttribute('cx', '8'); ring.setAttribute('cy', '8'); ring.setAttribute('r', '6.5');
+    ring.setAttribute('class', 'ring');
+    var core = document.createElementNS(NS, 'circle');
+    core.setAttribute('cx', '8'); core.setAttribute('cy', '8'); core.setAttribute('r', '3');
+    core.setAttribute('class', 'core');
+    svg.appendChild(ring);
+    svg.appendChild(core);
+    return svg;
+  }
+
+  function storeGet(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+  function storeSet(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* ignore */ } }
+
+  function api(method, url) {
+    return fetch(url, { method: method, headers: { Accept: 'application/json' } }).then(function (r) {
+      if (!r.ok) throw new Error(String(r.status));
+      return r.json();
+    });
+  }
+
+  /* ---------- feed ---------- */
+
+  function renderPost(w) {
+    var post = el('article', 'post');
+    post.setAttribute('data-slug', w.slug);
+
+    var titleBtn = el('button', 'title open', w.title);
+    titleBtn.type = 'button';
+    post.appendChild(titleBtn);
+
+    var meta = el('p', 'meta');
+    meta.appendChild(document.createTextNode(w.suburb + ', ' + w.state));
+    meta.appendChild(document.createElement('br'));
+    meta.appendChild(document.createTextNode(fmtDate(w.published_at)));
+    post.appendChild(meta);
+
+    post.appendChild(el('p', 'teaser', w.teaser));
+
+    var row = el('div', 'row');
+    var count = el('span', 'count');
+    count.appendChild(eyeIcon());
+    count.appendChild(el('span', 'num', fmtNum(w.open_count)));
+    row.appendChild(count);
+
+    var arrow = el('button', 'arrow', '↗');
+    arrow.type = 'button';
+    arrow.setAttribute('aria-label', 'Share ' + w.title);
+    row.appendChild(arrow);
+    post.appendChild(row);
+
+    post.addEventListener('click', function (e) {
+      if (e.target.closest('.arrow')) return;
+      openWhisper(w.slug, { auto: false });
+    });
+    arrow.addEventListener('click', function (e) {
+      e.stopPropagation();
+      shareWhisper(w.slug, w.title, arrow, '↗');
+    });
+
+    return post;
+  }
+
+  function renderFeed(list) {
+    feed.textContent = '';
+    list.forEach(function (w) {
+      whispers[w.slug] = w;
+      feed.appendChild(renderPost(w));
+    });
+  }
+
+  function updateFeedCount(slug, n) {
+    if (whispers[slug]) whispers[slug].open_count = n;
+    var post = feed.querySelector('[data-slug="' + slug + '"] .num');
+    if (post) post.textContent = fmtNum(n);
+  }
+
+  /* ---------- popup ---------- */
+
+  function showPopup(w) {
+    current = w;
+    popupTitle.textContent = w.title;
+    popupPlace.textContent = w.suburb + ', ' + w.state;
+    popupDate.textContent = fmtDate(w.published_at);
+    popupBody.textContent = '';
+    w.body.split(/\n\s*\n/).forEach(function (para) {
+      var t = para.trim();
+      if (t) popupBody.appendChild(el('p', null, t));
+    });
+    popupCount.textContent = '';
+    popupCount.appendChild(eyeIcon());
+    popupCount.appendChild(document.createTextNode(
+      ' ' + fmtNum(w.open_count) + (Number(w.open_count) === 1 ? ' time opened' : ' times opened')
+    ));
+    if (overlay.hidden) {
+      lastFocus = document.activeElement;
+      overlay.hidden = false;
+      document.body.classList.add('locked');
+    }
+    overlay.scrollTop = 0;
+    document.getElementById('popup').focus();
+  }
+
+  function hidePopup() {
+    if (overlay.hidden) return;
+    overlay.hidden = true;
+    document.body.classList.remove('locked');
+    current = null;
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  // auto = opened by a link or the back button, not by a tap. Those only
+  // count once per browser session, so a refresh never adds to the counter.
+  function openWhisper(slug, opts) {
+    var auto = !!(opts && opts.auto);
+    var flag = 'o:' + slug;
+    var shouldCount = !auto || !storeGet(flag);
+    var req = shouldCount
+      ? api('POST', '/api/whispers/' + encodeURIComponent(slug) + '/open')
+      : api('GET', '/api/whispers/' + encodeURIComponent(slug));
+
+    return req.then(function (w) {
+      if (shouldCount) storeSet(flag, '1');
+      showPopup(w);
+      updateFeedCount(w.slug, w.open_count);
+      var url = '/w/' + w.slug;
+      if (location.pathname !== url) history.pushState({ w: w.slug }, '', url);
+    }).catch(function () { /* leave the feed as it is */ });
+  }
+
+  function closePopup() {
+    if (history.state && history.state.w) {
+      history.back();
+    } else {
+      history.replaceState({}, '', '/');
+      hidePopup();
+    }
+  }
+
+  window.addEventListener('popstate', function () {
+    var m = location.pathname.match(/^\/w\/([a-z0-9-]+)$/);
+    if (m) {
+      api('GET', '/api/whispers/' + encodeURIComponent(m[1])).then(showPopup).catch(hidePopup);
+    } else {
+      hidePopup();
+    }
+  });
+
+  closeBtn.addEventListener('click', closePopup);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) closePopup(); });
+
+  document.addEventListener('keydown', function (e) {
+    if (overlay.hidden) return;
+    if (e.key === 'Escape') { closePopup(); return; }
+    if (e.key === 'Tab') {
+      var items = [closeBtn, popupShare];
+      var i = items.indexOf(document.activeElement);
+      if (e.shiftKey && i <= 0) { e.preventDefault(); items[items.length - 1].focus(); }
+      else if (!e.shiftKey && i === items.length - 1) { e.preventDefault(); items[0].focus(); }
+    }
+  });
+
+  /* ---------- share ---------- */
+
+  function shareWhisper(slug, title, button, restLabel) {
+    var url = location.origin + '/w/' + slug;
+    var done = function (label) {
+      if (!label) return;
+      button.textContent = label;
+      setTimeout(function () { button.textContent = restLabel; }, 1600);
+    };
+    if (navigator.share) {
+      navigator.share({ title: title, url: url }).catch(function (err) {
+        if (err && err.name === 'AbortError') return;
+        copyLink(url, done);
+      });
+    } else {
+      copyLink(url, done);
+    }
+  }
+
+  function copyLink(url, done) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function () { done('COPIED'); }, function () { window.prompt('Copy this link', url); });
+    } else {
+      window.prompt('Copy this link', url);
+    }
+  }
+
+  popupShare.addEventListener('click', function () {
+    if (current) shareWhisper(current.slug, current.title, popupShare, '↗ SHARE');
+  });
+
+  /* ---------- start ---------- */
+
+  api('GET', '/api/whispers').then(function (list) {
+    renderFeed(list);
+  }).catch(function () {
+    feed.textContent = '';
+    feed.appendChild(el('p', 'note', 'Couldn’t load. Refresh.'));
+  });
+
+  var start = location.pathname.match(/^\/w\/([a-z0-9-]+)$/);
+  if (start) openWhisper(start[1], { auto: true });
+})();

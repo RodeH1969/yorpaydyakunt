@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f5f2ea">
+<!--META-->
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="masthead">
+  <a class="wordmark" href="/">yorpaydyakunt</a>
+</header>
+
+<main id="feed"></main>
+
+<div id="overlay" class="overlay" hidden>
+  <div class="popup" id="popup" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="popup-title">
+    <button class="close" id="close" type="button" aria-label="Close">&#10005;</button>
+    <h2 class="title popup-title" id="popup-title"></h2>
+    <p class="meta"><span id="popup-place"></span><br><span id="popup-date"></span></p>
+    <div class="popup-body" id="popup-body"></div>
+    <footer class="popup-foot">
+      <p class="count" id="popup-count"></p>
+      <button class="share" id="popup-share" type="button">&#8599; SHARE</button>
+    </footer>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
