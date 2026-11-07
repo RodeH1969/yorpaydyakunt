@@ -98,7 +98,7 @@
     });
     arrow.addEventListener('click', function (e) {
       e.stopPropagation();
-      shareWhisper(w.slug, w.title, arrow, '↗ SHARE');
+      shareWhisper(w, arrow, '↗ SHARE');
     });
 
     return post;
@@ -205,25 +205,42 @@
 
   /* ---------- share ---------- */
 
-  // Copies the link and nothing else. No native share sheet, no extra text.
-  function shareWhisper(slug, title, button, restLabel) {
-    var url = location.origin + '/w/' + slug;
-    copyLink(url, function (label) {
-      button.textContent = label;
-      setTimeout(function () { button.textContent = restLabel; }, 1600);
-    });
+  // The shared message: title, place and date, the teaser, then the link
+  // (which opens that whisper's popup).
+  function shareText(w) {
+    return w.title.toUpperCase() + '\n' +
+      w.suburb + ', ' + w.state + ' · ' + fmtDate(w.published_at) + '\n\n' +
+      w.teaser + '\n\n' +
+      location.origin + '/w/' + w.slug;
   }
 
-  function copyLink(url, done) {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url).then(function () { done('LINK COPIED'); }, function () { window.prompt('Copy this link', url); });
+  function shareWhisper(w, button, restLabel) {
+    var text = shareText(w);
+    var done = function (label) {
+      button.textContent = label;
+      setTimeout(function () { button.textContent = restLabel; }, 1600);
+    };
+    // Everything goes in one block of text, link last, so no app drops the content.
+    if (navigator.share) {
+      navigator.share({ text: text }).catch(function (err) {
+        if (err && err.name === 'AbortError') return;
+        copyText(text, done);
+      });
     } else {
-      window.prompt('Copy this link', url);
+      copyText(text, done);
+    }
+  }
+
+  function copyText(text, done) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done('COPIED'); }, function () { window.prompt('Copy this', text); });
+    } else {
+      window.prompt('Copy this', text);
     }
   }
 
   popupShare.addEventListener('click', function () {
-    if (current) shareWhisper(current.slug, current.title, popupShare, '↗ SHARE');
+    if (current) shareWhisper(current, popupShare, '↗ SHARE');
   });
 
   /* ---------- start ---------- */
