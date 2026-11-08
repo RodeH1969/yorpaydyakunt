@@ -263,6 +263,76 @@
     if (current) shareWhisper(current, popupShare, '↗ SHARE');
   });
 
+  /* ---------- send a lead ---------- */
+
+  var leadOverlay = document.getElementById('lead-overlay');
+  var leadOpen = document.getElementById('lead-open');
+  var leadClose = document.getElementById('lead-close');
+  var leadForm = document.getElementById('lead-form');
+  var leadSend = document.getElementById('lead-send');
+  var leadMsg = document.getElementById('lead-msg');
+  var leadDate = document.getElementById('lead-date');
+
+  function todayBrisbane() {
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'Australia/Brisbane' });
+  }
+
+  function showLead() {
+    leadForm.reset();
+    leadMsg.textContent = '';
+    leadSend.disabled = false;
+    leadDate.max = todayBrisbane();
+    leadDate.value = todayBrisbane();
+    lastFocus = document.activeElement;
+    leadOverlay.hidden = false;
+    document.body.classList.add('locked');
+    document.getElementById('lead-popup').focus();
+  }
+
+  function hideLead() {
+    if (leadOverlay.hidden) return;
+    leadOverlay.hidden = true;
+    document.body.classList.remove('locked');
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  leadOpen.addEventListener('click', showLead);
+  leadClose.addEventListener('click', hideLead);
+  leadOverlay.addEventListener('click', function (e) { if (e.target === leadOverlay) hideLead(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') hideLead();
+  });
+
+  leadForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    leadMsg.textContent = '';
+    leadSend.disabled = true;
+    fetch('/api/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        lead: document.getElementById('lead-text').value,
+        city: document.getElementById('lead-city').value,
+        suburb: document.getElementById('lead-suburb').value,
+        happened_on: leadDate.value
+      })
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (data) {
+        if (r.ok) {
+          leadForm.reset();
+          leadMsg.textContent = 'Sent.';
+          setTimeout(hideLead, 1200);
+        } else {
+          leadSend.disabled = false;
+          leadMsg.textContent = r.status === 429 ? 'Too many. Try later.' : (data.error || 'Couldn’t send.');
+        }
+      });
+    }).catch(function () {
+      leadSend.disabled = false;
+      leadMsg.textContent = 'Couldn’t send.';
+    });
+  });
+
   /* ---------- start ---------- */
 
   renderTabs();

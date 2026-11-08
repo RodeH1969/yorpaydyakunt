@@ -43,6 +43,20 @@ p { margin: 0; }
   text-align: center;
 }
 
+.lead-btn {
+  display: block;
+  margin: 1.1rem auto 0;
+  padding: 0.55rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+  border: 1.5px solid var(--ink);
+}
+
+.lead-btn:hover { background: var(--ink); color: var(--bg); }
+
 .wordmark {
   font-size: 1.15rem;
   letter-spacing: 0.04em;
@@ -224,6 +238,40 @@ p { margin: 0; }
   font-weight: 700;
   letter-spacing: 0.14em;
   border: 1.5px solid var(--ink);
+}
+
+/* lead form */
+
+.lead-form label {
+  display: block;
+  margin-top: 1rem;
+  color: var(--mute);
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+}
+
+.lead-form input,
+.lead-form textarea {
+  display: block;
+  width: 100%;
+  margin-top: 0.3rem;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  color: var(--ink);
+  background: #fbf9f4;
+  border: 1px solid var(--line);
+  border-radius: 0;
+}
+
+.lead-form textarea { min-height: 7rem; resize: vertical; }
+
+.lead-form .share { margin-top: 1.5rem; }
+
+.lead-msg {
+  margin-top: 0.9rem;
+  color: var(--mute);
+  font-size: 0.9rem;
+  text-align: center;
 }
 
 /* editor */

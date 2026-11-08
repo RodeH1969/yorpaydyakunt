@@ -72,4 +72,28 @@ async function remove(slug) {
   return data.length > 0;
 }
 
-module.exports = { list, get, increment, insert, update, remove };
+async function insertLead(row) {
+  const { error } = await supabase.from('leads').insert(row);
+  if (error) throw error;
+}
+
+async function listLeads() {
+  const { data, error } = await supabase
+    .from('leads')
+    .select('id, lead, city, suburb, happened_on, created_at')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+async function removeLead(id) {
+  const { data, error } = await supabase
+    .from('leads')
+    .delete()
+    .eq('id', id)
+    .select('id');
+  if (error) throw error;
+  return data.length > 0;
+}
+
+module.exports = { list, get, increment, insert, update, remove, insertLead, listLeads, removeLead };

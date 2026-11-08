@@ -66,6 +66,7 @@
     if (loggedIn) {
       document.getElementById('date').value = today();
       loadList();
+      loadLeads();
     } else {
       document.getElementById('password').focus();
     }
@@ -113,6 +114,37 @@
         li.appendChild(what);
         li.appendChild(acts);
         list.appendChild(li);
+      });
+    });
+  }
+
+  function loadLeads() {
+    var ul = document.getElementById('leads');
+    api('GET', '/api/editor/leads').then(function (res) {
+      ul.textContent = '';
+      if (!res.ok) return;
+      res.data.forEach(function (l) {
+        var li = document.createElement('li');
+        var what = document.createElement('span');
+        what.className = 'what';
+        what.appendChild(document.createTextNode(l.lead));
+        var small = document.createElement('small');
+        small.textContent = l.suburb + ', ' + l.city + ' · ' + fmtDate(l.happened_on);
+        what.appendChild(small);
+        var del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'del';
+        del.textContent = 'Delete';
+        del.addEventListener('click', function () {
+          if (!window.confirm('Delete this lead?')) return;
+          api('DELETE', '/api/editor/leads/' + encodeURIComponent(l.id)).then(function (r) {
+            if (r.status === 401) return show(false);
+            loadLeads();
+          });
+        });
+        li.appendChild(what);
+        li.appendChild(del);
+        ul.appendChild(li);
       });
     });
   }

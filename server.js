@@ -201,6 +201,26 @@ app.post('/api/whispers/:slug/open', limiter(60, 60 * 1000), async (req, res) =>
   } catch (err) { fail(res, err); }
 });
 
+// Anonymous lead from a visitor. Nothing about the sender is stored.
+app.post('/api/leads', limiter(5, 60 * 60 * 1000), async (req, res) => {
+  const b = req.body || {};
+  const str = (v) => (typeof v === 'string' ? v.trim() : '');
+  const lead = str(b.lead);
+  const city = str(b.city);
+  const suburb = str(b.suburb);
+  const happened_on = str(b.happened_on);
+
+  if (!lead || lead.length > 1000) return res.status(400).json({ error: 'Lead: 1 to 1000 characters' });
+  if (!city || city.length > 80) return res.status(400).json({ error: 'City: 1 to 80 characters' });
+  if (!suburb || suburb.length > 80) return res.status(400).json({ error: 'Suburb: 1 to 80 characters' });
+  if (!validDate(happened_on) || happened_on > todayBrisbane()) return res.status(400).json({ error: 'Date is not valid' });
+
+  try {
+    await db.insertLead({ lead, city, suburb, happened_on });
+    res.status(201).json({ ok: true });
+  } catch (err) { fail(res, err); }
+});
+
 /* ---------- editor API ---------- */
 
 app.get('/api/editor/session', (req, res) => {
@@ -283,6 +303,22 @@ app.delete('/api/editor/whispers/:slug', requireEditor, async (req, res) => {
   if (!SLUG_RE.test(req.params.slug)) return res.status(404).json({ error: 'Not found' });
   try {
     const removed = await db.remove(req.params.slug);
+    if (!removed) return res.status(404).json({ error: 'Not found' });
+    res.json({ ok: true });
+  } catch (err) { fail(res, err); }
+});
+
+app.get('/api/editor/leads', requireEditor, async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    res.json(await db.listLeads());
+  } catch (err) { fail(res, err); }
+});
+
+app.delete('/api/editor/leads/:id', requireEditor, async (req, res) => {
+  if (!/^\d{1,15}$/.test(req.params.id)) return res.status(404).json({ error: 'Not found' });
+  try {
+    const removed = await db.removeLead(req.params.id);
     if (!removed) return res.status(404).json({ error: 'Not found' });
     res.json({ ok: true });
   } catch (err) { fail(res, err); }

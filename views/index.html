@@ -10,6 +10,7 @@
 <body>
 <header class="masthead">
   <a class="wordmark" href="/">yorpaydyakunt</a>
+  <button class="lead-btn" id="lead-open" type="button">Send a lead</button>
 </header>
 
 <nav class="tabs" id="tabs" role="tablist" aria-label="State"></nav>
@@ -26,6 +27,29 @@
       <p class="count" id="popup-count"></p>
       <button class="share" id="popup-share" type="button">&#8599; SHARE</button>
     </footer>
+  </div>
+</div>
+
+<div id="lead-overlay" class="overlay" hidden>
+  <div class="popup lead-popup" id="lead-popup" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="lead-title">
+    <button class="close" id="lead-close" type="button" aria-label="Close">&#10005;</button>
+    <h2 class="title popup-title" id="lead-title">Send a lead</h2>
+    <form id="lead-form" class="lead-form">
+      <label for="lead-text">Lead</label>
+      <textarea id="lead-text" maxlength="1000" required></textarea>
+
+      <label for="lead-city">City</label>
+      <input id="lead-city" maxlength="80" required>
+
+      <label for="lead-suburb">Suburb</label>
+      <input id="lead-suburb" maxlength="80" required>
+
+      <label for="lead-date">Date it happened</label>
+      <input id="lead-date" type="date" required>
+
+      <button class="share" id="lead-send" type="submit">SEND</button>
+      <p class="lead-msg" id="lead-msg"></p>
+    </form>
   </div>
 </div>
 
