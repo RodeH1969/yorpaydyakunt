@@ -2,6 +2,7 @@
   'use strict';
 
   var feed = document.getElementById('feed');
+  var tabsEl = document.getElementById('tabs');
   var overlay = document.getElementById('overlay');
   var closeBtn = document.getElementById('close');
   var popupTitle = document.getElementById('popup-title');
@@ -12,7 +13,10 @@
   var popupShare = document.getElementById('popup-share');
 
   var NS = 'http://www.w3.org/2000/svg';
+  var STATES = ['QLD', 'NSW', 'VIC', 'SA', 'WA', 'TAS', 'NT', 'ACT'];
   var whispers = {};
+  var allList = [];
+  var activeTab = 'ALL';
   var current = null;
   var lastFocus = null;
 
@@ -104,11 +108,27 @@
     return post;
   }
 
-  function renderFeed(list) {
+  function renderFeed() {
     feed.textContent = '';
-    list.forEach(function (w) {
-      whispers[w.slug] = w;
-      feed.appendChild(renderPost(w));
+    allList.forEach(function (w) {
+      if (activeTab === 'ALL' || w.state === activeTab) feed.appendChild(renderPost(w));
+    });
+  }
+
+  function renderTabs() {
+    tabsEl.textContent = '';
+    ['ALL'].concat(STATES).forEach(function (name) {
+      var b = el('button', 'tab', name);
+      b.type = 'button';
+      b.setAttribute('role', 'tab');
+      b.setAttribute('aria-selected', name === activeTab ? 'true' : 'false');
+      b.addEventListener('click', function () {
+        if (activeTab === name) return;
+        activeTab = name;
+        renderTabs();
+        renderFeed();
+      });
+      tabsEl.appendChild(b);
     });
   }
 
@@ -245,8 +265,12 @@
 
   /* ---------- start ---------- */
 
+  renderTabs();
+
   api('GET', '/api/whispers').then(function (list) {
-    renderFeed(list);
+    allList = list;
+    list.forEach(function (w) { whispers[w.slug] = w; });
+    renderFeed();
   }).catch(function () {
     feed.textContent = '';
     feed.appendChild(el('p', 'note', 'Couldn’t load. Refresh.'));

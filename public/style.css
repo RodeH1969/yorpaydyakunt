@@ -41,7 +41,6 @@ p { margin: 0; }
   margin: 0 auto;
   padding: 2.75rem 1.25rem 1.75rem;
   text-align: center;
-  border-bottom: 1px solid var(--line);
 }
 
 .wordmark {
@@ -49,6 +48,38 @@ p { margin: 0; }
   letter-spacing: 0.04em;
   color: var(--ink);
   text-decoration: none;
+}
+
+/* state tabs */
+
+.tabs {
+  display: flex;
+  gap: 1.4rem;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  flex: none;
+  padding: 0.9rem 0 0.8rem;
+  color: var(--mute);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  border-bottom: 2px solid transparent;
+}
+
+.tab:hover { color: var(--ink); }
+
+.tab[aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
 }
 
 /* feed */
