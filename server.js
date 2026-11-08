@@ -228,8 +228,9 @@ app.post('/api/editor/logout', (req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/api/editor/whispers', requireEditor, async (req, res) => {
-  const b = req.body || {};
+// Checks the editor form fields. Returns { error } or { fields }.
+function readWhisper(b) {
+  b = b || {};
   const str = (v) => (typeof v === 'string' ? v.trim() : '');
   const title = str(b.title);
   const suburb = str(b.suburb);
@@ -238,12 +239,30 @@ app.post('/api/editor/whispers', requireEditor, async (req, res) => {
   const body = str(b.body);
   const published_at = str(b.published_at) || todayBrisbane();
 
-  if (!title || title.length > 80) return res.status(400).json({ error: 'Title: 1 to 80 characters' });
-  if (!suburb || suburb.length > 80) return res.status(400).json({ error: 'Suburb: 1 to 80 characters' });
-  if (!STATES.includes(state)) return res.status(400).json({ error: 'Pick a state' });
-  if (!validDate(published_at)) return res.status(400).json({ error: 'Date is not valid' });
-  if (!teaser || teaser.length > 400) return res.status(400).json({ error: 'Teaser: 1 to 400 characters' });
-  if (!body || body.length > 4000) return res.status(400).json({ error: 'Popup text: 1 to 4000 characters' });
+  if (!title || title.length > 80) return { error: 'Title: 1 to 80 characters' };
+  if (!suburb || suburb.length > 80) return { error: 'Suburb: 1 to 80 characters' };
+  if (!STATES.includes(state)) return { error: 'Pick a state' };
+  if (!validDate(published_at)) return { error: 'Date is not valid' };
+  if (!teaser || teaser.length > 400) return { error: 'Teaser: 1 to 400 characters' };
+  if (!body || body.length > 4000) return { error: 'Popup text: 1 to 4000 characters' };
+  return { fields: { title, suburb, state, published_at, teaser, body } };
+}
+
+app.put('/api/editor/whispers/:slug', requireEditor, async (req, res) => {
+  if (!SLUG_RE.test(req.params.slug)) return res.status(404).json({ error: 'Not found' });
+  const parsed = readWhisper(req.body);
+  if (parsed.error) return res.status(400).json({ error: parsed.error });
+  try {
+    const updated = await db.update(req.params.slug, parsed.fields);
+    if (!updated) return res.status(404).json({ error: 'Not found' });
+    res.json(updated);
+  } catch (err) { fail(res, err); }
+});
+
+app.post('/api/editor/whispers', requireEditor, async (req, res) => {
+  const parsed = readWhisper(req.body);
+  if (parsed.error) return res.status(400).json({ error: parsed.error });
+  const { title, suburb, state, published_at, teaser, body } = parsed.fields;
 
   try {
     let created = null;

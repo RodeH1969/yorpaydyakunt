@@ -50,6 +50,18 @@ async function insert(row) {
   return data;
 }
 
+// Edits the text fields only. Slug (so share links keep working) and open count stay as they are.
+async function update(slug, fields) {
+  const { data, error } = await supabase
+    .from('whispers')
+    .update(fields)
+    .eq('slug', slug)
+    .select(FULL_COLUMNS)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 async function remove(slug) {
   const { data, error } = await supabase
     .from('whispers')
@@ -60,4 +72,4 @@ async function remove(slug) {
   return data.length > 0;
 }
 
-module.exports = { list, get, increment, insert, remove };
+module.exports = { list, get, increment, insert, update, remove };

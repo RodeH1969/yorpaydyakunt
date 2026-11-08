@@ -275,6 +275,12 @@ p { margin: 0; }
   text-decoration: underline;
 }
 
+.editor [hidden] { display: none !important; }
+
+.editor .acts { display: flex; gap: 1rem; flex: none; }
+
+.editor #cancel { margin-left: 1rem; }
+
 .editor .out {
   display: block;
   margin: 3rem auto 0;
